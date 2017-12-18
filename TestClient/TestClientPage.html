@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <!-- AJAX uses same origin policy ... you can call web api on the same port/same domain/security schemes with api/employee without using the full route-->
+    <!-- NEED TO install Microsoft.AspNet.WebApi.Cors package to be able to access web api across domains Cross Origin Resource Sharing-->
+    <meta charset="utf-8" />
+    <script src="Scripts/jquery-1.10.2.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var ulEmployees = $('#ulEmployees');
+            $('#btn').click(function () {
+                $.ajax({
+                    type: 'GET',
+                    url: 'http://localhost:52624/api/employee',
+                    dataType: 'json',
+                    success: function (data) {
+                        ulEmployees.empty();
+                        $.each(data, function (index, emp) {
+                            var fullName = emp.FirstName + ' ' + emp.LastName;
+                            ulEmployees.append('<li>' + fullName + '</li>')
+                        });
+                    }
+                })
+            });
+            $('#btnClear').click(function () {
+                ulEmployees.empty();
+            })
+        });
+    </script>
+    <title></title>
+</head>
+<body>
+    <input id="btn" type="button" value="Get All Employees" />
+    <input id="btnClear" type="button" value="Clear" />
+    <ul id="ulEmployees"></ul>
+</body>
+</html>
