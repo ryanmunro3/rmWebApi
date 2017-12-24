@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using WebApiDemo.Models;
+using WebApiDemo.Security;
 
 namespace WebApiDemo.Controllers
 {
@@ -13,44 +15,80 @@ namespace WebApiDemo.Controllers
     //[FromUri] - can be used to route complex types to the uri // default on complex types is [FromBody]
     // simple types default to the URI, can be forced to body with [FromBody]
     //if you want to disable a specific action you can use [DisableCors] on the function/action
+
+    //you can add min/max constraits as well (min, max, length, range, minlength, maxlength)
     
     [EnableCorsAttribute("http://localhost:57042", "*", "*")]
+    [RoutePrefix("api/employee")]  // you can use ~ in the route attribute to override this functionality
     public class EmployeeController : ApiController
     {
         [HttpGet]
-        public HttpResponseMessage Get(string gender="All")
+        [BasicAuthentication]
+        [Route("")]
+        public IHttpActionResult Get(string gender="All")
         {
+            string username = Thread.CurrentPrincipal.Identity.Name;
             using (WebApiDBEntities entity = new WebApiDBEntities())
             {
-                switch(gender.ToLower())
+                switch(username.ToLower())
                 {
                     case "all":
-                        return Request.CreateResponse(HttpStatusCode.OK, entity.Employees.ToList());
-                    case "male":
-                        return Request.CreateResponse(HttpStatusCode.OK, entity.Employees.Where(e => e.Gender.ToLower() == "male").ToList());
-                    case "female":
-                        return Request.CreateResponse(HttpStatusCode.OK, entity.Employees.Where(e => e.Gender.ToLower() == "female").ToList());
+                        return Ok(entity.Employees.ToList());
+                    case "ryan":
+                        return Ok(entity.Employees.Where(e => e.Gender.ToLower() == "male").ToList());
+                    case "jenn":
+                        return Ok(entity.Employees.Where(e => e.Gender.ToLower() == "female").ToList());
                     default:
-                        return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Value for gender must be All, Male, or Female. " + gender + " is invalid.");
+                        return Unauthorized();
                 }
             }
         }
 
         [HttpGet]
-        public HttpResponseMessage Get(int id)
+        [Route("{id:int}")]
+        public IHttpActionResult GetEmployeeByID(int id)
         {
             using (WebApiDBEntities entity = new WebApiDBEntities())
             {
                 Employee emp = entity.Employees.FirstOrDefault(e => e.ID == id);
                 if (emp != null)
-                    return Request.CreateResponse(HttpStatusCode.OK, emp);
+                    return Ok(emp);
                 else
-                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee with ID " + id + " not found.");
+                    return NotFound();
+            }
+        }
+
+        [HttpGet]
+        [Route("{name:alpha}")]
+        public IHttpActionResult GetEmployeeByID(string name)
+        {
+            using (WebApiDBEntities entity = new WebApiDBEntities())
+            {
+                Employee emp = entity.Employees.FirstOrDefault(e => e.FirstName == name);
+                if (emp != null)
+                    return Ok(emp);
+                else
+                    return NotFound();
+            }
+        }
+
+        [HttpGet]
+        [Route("{id}/salary")]
+        public IHttpActionResult GetEmployeeSalary(int id)
+        {
+            using (WebApiDBEntities entity = new WebApiDBEntities())
+            {
+                Employee emp = entity.Employees.FirstOrDefault(e => e.ID == id);
+                if (emp != null)
+                    return Ok(emp.Salary);
+                else
+                    return NotFound();
             }
         }
 
         [HttpPost]
-        public HttpResponseMessage Post([FromBody]Employee emp)
+        [Route("{id}")]
+        public IHttpActionResult Post([FromBody]Employee emp)
         {
             try
             {
@@ -58,20 +96,18 @@ namespace WebApiDemo.Controllers
                 {
                     entity.Employees.Add(emp);
                     entity.SaveChanges();
-
-                    var message = Request.CreateResponse(HttpStatusCode.Created, emp);
-                    message.Headers.Location = new Uri(Request.RequestUri + "/" + emp.ID.ToString());
-                    return message;
+                    return Created(Request.RequestUri + "/" + emp.ID.ToString(), emp);
                 }
             }
             catch (Exception ex)
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                return BadRequest(ex.ToString());
             }
         }
 
         [HttpDelete]
-        public HttpResponseMessage Delete(int id)
+        [Route("{id}")]
+        public IHttpActionResult Delete(int id)
         {
             try
             {
@@ -79,23 +115,24 @@ namespace WebApiDemo.Controllers
                 {
                     var emp = entity.Employees.FirstOrDefault(e => e.ID == id);
                     if (emp == null)
-                        return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee with ID = " + id.ToString() + " not found!");
+                        return NotFound();
                     else
                     {
                         entity.Employees.Remove(emp);
                         entity.SaveChanges();
-                        return Request.CreateResponse(HttpStatusCode.OK);
+                        return Ok();
                     }
                 }
             }
             catch (Exception ex)
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                return BadRequest(ex.ToString());
             }
         }
 
         [HttpPut]
-        public HttpResponseMessage Put(int id, [FromBody]Employee emp)
+        [Route("{id}")]
+        public IHttpActionResult Put(int id, [FromBody]Employee emp)
         {
             try
             {
@@ -109,15 +146,15 @@ namespace WebApiDemo.Controllers
                         updateEmp.Gender = emp.Gender;
                         updateEmp.Salary = emp.Salary;
                         entity.SaveChanges();
-                        return Request.CreateResponse(HttpStatusCode.OK, updateEmp);
+                        return Ok(updateEmp);
                     }
                     else
-                        return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee with ID = " + id.ToString() + " does not exist!");
+                        return NotFound();
                 }
             }
             catch(Exception ex)
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                return BadRequest(ex.ToString());
             }
         }
     }

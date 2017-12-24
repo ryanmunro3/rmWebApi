@@ -6,6 +6,7 @@
     <edmx:Diagrams>
       <Diagram DiagramId="4f10a613bd8749ad82d4d68f39a88a4b" Name="Diagram1">
         <EntityTypeShape EntityType="WebApiDBModel.Employee" Width="1.5" PointX="0.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="WebApiDBModel.User" Width="1.5" PointX="3.375" PointY="0.75" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

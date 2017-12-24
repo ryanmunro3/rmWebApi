@@ -13,7 +13,7 @@ namespace WebApiDemo
         {
             // Web API configuration and services
 
-            // Web API routes
+            // Web API routes -- this maps the attribute based routes
             config.MapHttpAttributeRoutes();
 
             config.Routes.MapHttpRoute(
